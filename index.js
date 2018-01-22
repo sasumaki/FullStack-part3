@@ -1,8 +1,21 @@
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
+const morgan = require("morgan");
+const cors = require("cors");
 
+app.use(cors());
 app.use(bodyParser.json());
+morgan.token("type", function(req, res) {
+  if (req.body.name !== undefined) {
+    return JSON.stringify(req.body);
+  } else {
+    return null;
+  }
+});
+app.use(
+  morgan(":method :url :type :status :res[content-length] - :response-time ms ")
+);
 
 let persons = [
   {
@@ -60,7 +73,11 @@ app.post("/api/persons", (request, response) => {
   if (body.name === undefined || body.number === undefined) {
     return response.status(400).json({ error: "content missing" });
   }
-  if (persons.map(person => person.id === body.name)) {
+  let names = persons.map(person => person.name);
+  console.log(names);
+  console.log(body.name);
+  if (names.includes(body.name)) {
+    console.log("not unique");
     return response.status(400).json({ error: "Name must be unique." });
   }
   const person = {
@@ -68,11 +85,12 @@ app.post("/api/persons", (request, response) => {
     number: body.number,
     id: Math.floor(Math.random() * Math.floor(Number.MAX_SAFE_INTEGER))
   };
-  persons.concat(person);
+  persons = persons.concat(person);
 
   response.json(person);
 });
 
-const port = 3001;
-app.listen(port);
-console.log(`Server running on port ${port}`);
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
