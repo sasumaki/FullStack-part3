@@ -3,6 +3,17 @@ const app = express();
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
 const cors = require("cors");
+const mongoose = require("mongoose");
+
+const url = "mongodb://aids:aids@ds121088.mlab.com:21088/phonebook";
+
+mongoose.connect(url);
+mongoose.Promise = global.Promise;
+
+const Person = mongoose.model("Person", {
+  name: String,
+  number: String
+});
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -18,28 +29,13 @@ app.use(
 );
 app.use(express.static("build"));
 
-let persons = [
-  {
-    name: "Arto Hellas",
-    number: "040-123456",
-    id: 1
-  },
-  {
-    name: "Martti Tienari",
-    number: "040-123456",
-    id: 2
-  },
-  {
-    name: "Arttu Järvinen",
-    number: "040-123456",
-    id: 3
-  },
-  {
-    name: "Lea Kutvonen",
-    number: "040-123456",
-    id: 4
-  }
-];
+const formatPerson = person => {
+  return {
+    name: person.name,
+    number: person.number,
+    id: person._id
+  };
+};
 
 app.get("/info", (req, res) => {
   res.send(
@@ -50,7 +46,10 @@ app.get("/info", (req, res) => {
 });
 
 app.get("/api/persons", (req, res) => {
-  res.json(persons);
+  Person.find({}).then(persons => {
+    console.log("adoiasoidjo");
+    response.json(persons.map(formatPerson));
+  });
 });
 
 app.get("/api/persons/:id", (request, response) => {
