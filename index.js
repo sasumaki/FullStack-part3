@@ -4,7 +4,9 @@ const bodyParser = require("body-parser");
 const morgan = require("morgan");
 const cors = require("cors");
 const Person = require("./models/book");
+const nocache = require("nocache");
 
+app.use(nocache());
 app.use(cors());
 app.use(bodyParser.json());
 morgan.token("type", function(req, res) {
@@ -20,11 +22,12 @@ app.use(
 app.use(express.static("build"));
 
 app.get("/info", (req, res) => {
-  res.send(
-    `There are currently ${
-      persons.length
-    } entries in the phonebook. <br> ${new Date()}`
-  );
+  Person.find({}).then(persons => {
+    const amountOfPeople = persons.length;
+    res.send(
+      `There are currently ${amountOfPeople} entries in the phonebook. <br> ${new Date()}`
+    );
+  });
 });
 
 app.get("/api/persons", (req, res) => {
@@ -46,9 +49,8 @@ app.get("/api/persons/:id", (request, response) => {
     });
 });
 app.delete("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  persons = persons.filter(person => person.id !== id);
-
+  console.log(request.params.id);
+  Person.deleteOne({ _id: request.params.id }, function(err) {});
   response.status(204).end();
 });
 app.post("/api/persons", (request, response) => {
@@ -68,8 +70,24 @@ app.post("/api/persons", (request, response) => {
     number: body.number,
     id: Math.floor(Math.random() * Math.floor(Number.MAX_SAFE_INTEGER))
   });
-  person.save().then(savedPerson => {
-    response.json(Person.format(savedPerson));
+
+  Person.find({}).then(persons => {
+    console.log("adoiasoidjo");
+    let names = persons.map(Person.format).map(person => person.name);
+    if (names.includes(body.name)) {
+      Person.findOne({ name: body.name }).then(p => {
+        console.log(p);
+        p.number = body.number;
+        console.log(p);
+        p.save().then(savedPerson => {
+          response.json(Person.format(savedPerson));
+        });
+      });
+    } else {
+      person.save().then(savedPerson => {
+        response.json(Person.format(savedPerson));
+      });
+    }
   });
 });
 
