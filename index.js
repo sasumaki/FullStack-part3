@@ -3,17 +3,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
 const cors = require("cors");
-const mongoose = require("mongoose");
-
-const url = "mongodb://aids:aids@ds121088.mlab.com:21088/phonebook";
-
-mongoose.connect(url);
-mongoose.Promise = global.Promise;
-
-const Person = mongoose.model("Person", {
-  name: String,
-  number: String
-});
+const Person = require("./models/book");
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -29,14 +19,6 @@ app.use(
 );
 app.use(express.static("build"));
 
-const formatPerson = person => {
-  return {
-    name: person.name,
-    number: person.number,
-    id: person._id
-  };
-};
-
 app.get("/info", (req, res) => {
   res.send(
     `There are currently ${
@@ -48,19 +30,20 @@ app.get("/info", (req, res) => {
 app.get("/api/persons", (req, res) => {
   Person.find({}).then(persons => {
     console.log("adoiasoidjo");
-    response.json(persons.map(formatPerson));
+    res.json(persons.map(Person.format));
   });
 });
 
 app.get("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const person = persons.find(person => person.id === id);
-
-  if (person) {
-    response.json(person);
-  } else {
-    response.status(404).end();
-  }
+  console.log(request.params.id);
+  Person.findById(request.params.id)
+    .then(person => {
+      console.log(person);
+      response.json(Person.format(person));
+    })
+    .catch(error => {
+      console.log(error + "EI löyTYNT");
+    });
 });
 app.delete("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id);
@@ -73,21 +56,21 @@ app.post("/api/persons", (request, response) => {
   if (body.name === undefined || body.number === undefined) {
     return response.status(400).json({ error: "content missing" });
   }
-  let names = persons.map(person => person.name);
-  console.log(names);
-  console.log(body.name);
-  if (names.includes(body.name)) {
-    console.log("not unique");
-    return response.status(400).json({ error: "Name must be unique." });
-  }
-  const person = {
+  //let names = persons.map(person => person.name);
+  //console.log(names);
+  //console.log(body.name);
+  //if (names.includes(body.name)) {
+  //console.log("not unique");
+  //return response.status(400).json({ error: "Name must be unique." });
+  //}
+  const person = new Person({
     name: body.name,
     number: body.number,
     id: Math.floor(Math.random() * Math.floor(Number.MAX_SAFE_INTEGER))
-  };
-  persons = persons.concat(person);
-
-  response.json(person);
+  });
+  person.save().then(savedPerson => {
+    response.json(Person.format(savedPerson));
+  });
 });
 
 const PORT = process.env.PORT || 3001;
